@@ -1,0 +1,118 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flexa"
+version = "0.1.0"
+description = "Production-ready time series forecasting with Polars, scikit-learn, and Amazon Chronos"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "Flexa Team" }
+]
+keywords = ["time-series", "forecasting", "chronos", "polars", "scikit-learn", "deep-learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "polars>=1.20.0",
+    "scikit-learn>=1.5.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.2.0",
+    "pyyaml>=6.0.1",
+    "typer>=0.12.0",
+    "rich>=13.7.0",
+    "matplotlib>=3.8.0",
+    "cvxpy>=1.9.2",
+]
+
+# The Chronos-2 foundation model is a benchmark comparator, not part of either
+# production entry point (GBDT forecasting / CVXPY battery steering). torch,
+# transformers and accelerate are pulled in solely by chronos-forecasting, so
+# they live behind an extra and stay out of the runtime container.
+#   uv sync --extra chronos          # or: pip install "flexa[chronos]"
+[project.optional-dependencies]
+chronos = [
+    "chronos-forecasting>=2.3.0",
+    "torch>=2.2.0",
+]
+
+[project.scripts]
+flexa = "flexa.cli:app"
+
+[dependency-groups]
+dev = [
+    # Chronos is exercised by tests/test_models.py and tests/test_weather_features.py,
+    # so the dev environment always carries the extra.
+    "flexa[chronos]",
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "marimo>=0.24.0",
+    "plotly>=7.0.0",
+    "pyarrow>=25.0.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flexa"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501", # Line too long (handled by formatter)
+    "B008", # Do not perform function call in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["flexa"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+addopts = "-v --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+
+# Linux (i.e. the Docker image) resolves torch from the PyTorch CPU wheel index.
+# The default PyPI Linux wheel drags in ~2.5 GB of CUDA runtime packages that are
+# useless in a CPU-only container. macOS keeps the regular PyPI wheel (MPS support).
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+flexa = { workspace = true }
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

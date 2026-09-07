@@ -1,0 +1,36 @@
+# Keep the build context small and the image reproducible.
+# data/ is deliberately excluded: it is bind-mounted at run time
+# (-v "$(pwd)/data:/app/data"), never baked into the image.
+data/
+
+.git/
+.github/
+.venv/
+venv/
+env/
+ENV/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+notebooks/
+tests/
+scratch/
+
+.env
+.env.local
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.log

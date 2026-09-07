@@ -1,0 +1,46 @@
+# Convenience wrapper around the same image the Dockerfile builds.
+#
+#   docker compose run --rm forecast     # entry point 1 — forecasting
+#   docker compose run --rm battery      # entry point 2 — battery steering
+#   docker compose run --rm report       # combined PDF report
+#   docker compose run --rm all          # split -> forecast -> battery -> report
+#
+# Extra flags pass through to the underlying script, e.g.
+#   docker compose run --rm forecast --pools 0 4 11 --format parquet
+
+x-flexa: &flexa
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: flexa:latest
+  # data/ is the only mutable surface: inputs are read and outputs written here.
+  volumes:
+    - ./data:/app/data
+  working_dir: /app
+
+services:
+  forecast:
+    <<: *flexa
+    command: ["forecast"]
+
+  battery:
+    <<: *flexa
+    command: ["battery"]
+
+  report:
+    <<: *flexa
+    command: ["report"]
+
+  split:
+    <<: *flexa
+    command: ["split"]
+
+  all:
+    <<: *flexa
+    command: ["all"]
+
+  shell:
+    <<: *flexa
+    command: ["shell"]
+    stdin_open: true
+    tty: true
